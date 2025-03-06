@@ -1,7 +1,7 @@
 import { Devvit, useState, Context } from '@devvit/public-api';
-import ExperiencePost from './ExperiencePost.js';
-import RankingSystem from './rankingSystem.js';
-
+import DailyClaim from './DailyClaim.js';
+import PointsRanking from './PointsRanking.js';
+import GuessingRanking from './GuessRanking.js';
 
 // DropdownMenu component
 const DropdownMenu = (context: Context) => {
@@ -33,13 +33,18 @@ const DropdownMenu = (context: Context) => {
                     <button onPress={() => selectOption('experience')}>
                         Claim Daily Gift
                     </button>
-                    <button onPress={() => selectOption('ranking')}>
-                        View Ranking 
+                    <button onPress={() => selectOption('PointsRanking')}>
+                        Points Ranking 
+                    </button>
+                    <button onPress={() => selectOption('TopGuesser')}>
+                        TopGuesser
                     </button>
                 </vstack>
             )}
-            {selectedAction === 'experience' && <ExperiencePost {...context} />}
-            {selectedAction === 'ranking' && <RankingSystem {...context} />}
+            {selectedAction === 'experience' && <DailyClaim {...context} />}
+            {selectedAction === 'PointsRanking' && <PointsRanking {...context} />}
+            {selectedAction === 'TopGuesser' && <GuessingRanking {...context} />}
+
         </vstack>
     );
 };

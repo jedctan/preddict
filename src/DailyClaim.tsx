@@ -1,7 +1,7 @@
 import { Devvit, useAsync, useState  } from '@devvit/public-api';
 import { fetchUserPoints, updateUserPoints, isNewUser, addNewUser , fetchDailyGiftStatus, updateGiftKey } from './pointsAPI.js';
 
-const ExperiencePost = (context: Devvit.Context) => {
+const DailyClaim = (context: Devvit.Context) => {
     //Fetches the current user id and name
   const { data: currentUser, loading: userLoading, error: userError } = useAsync(async () => {
     const user = await context.reddit.getCurrentUser();
@@ -124,4 +124,4 @@ const ExperiencePost = (context: Devvit.Context) => {
 };
 
 
-export default ExperiencePost;
+export default DailyClaim;

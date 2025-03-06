@@ -1,7 +1,7 @@
 import { Devvit, useAsync } from '@devvit/public-api';
 import { fetchTopUsers } from './pointsAPI.js';
 
-const ExperiencePost = (context: Devvit.Context) => {
+const PointsRanking = (context: Devvit.Context) => {
     const { data: topUsers, loading, error } = useAsync(async () => {
         //console.log('Fetching top users with context:', context);
         const users = await fetchTopUsers(context);
@@ -34,4 +34,4 @@ const ExperiencePost = (context: Devvit.Context) => {
     );
 };
 
-export default ExperiencePost;
+export default PointsRanking;
