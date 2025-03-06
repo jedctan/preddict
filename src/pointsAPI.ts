@@ -50,4 +50,5 @@ export async function fetchDailyGiftStatus(context: Devvit.Context, userId: stri
   export async function updateGiftKey(context: Devvit.Context, userId: string): Promise<void> {
     const giftKey = `user:${userId}:dailyGift`; 
     await context.redis.set(giftKey, 'true');
-  }
+    await context.redis.expire(giftKey, 86400);
+}

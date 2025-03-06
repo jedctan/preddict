@@ -37,11 +37,16 @@ const ExperiencePost = (context: Devvit.Context) => {
       if (!currentUser?.id) return 0;
       return await fetchUserPoints(context, currentUser.id);
     },
-    { depends: [currentUser?.id ?? null] }
+    { depends: [currentUser?.id ?? null, refreshCounter] }
   );
 
-  const refreshData = () => setRefreshCounter((prev) => prev + 1);
-
+  const refreshData = () => {
+    setRefreshCounter((prev) => {
+      const newValue = prev + 1;
+      console.log('Refreshing data, new refreshCounter:', newValue);
+      return newValue;
+    });
+  };
 //fetches the status of the given users daily gift status 
   const {
     data: hasClaimed,
@@ -52,7 +57,7 @@ const ExperiencePost = (context: Devvit.Context) => {
       if (!currentUser?.id) return false;
       return await fetchDailyGiftStatus(context, currentUser.id);
     },
-    { depends: [currentUser?.id ?? null] }
+    { depends: [currentUser?.id ?? null, refreshCounter] }
   );
 
 
@@ -77,9 +82,24 @@ const ExperiencePost = (context: Devvit.Context) => {
 
 
 
-  if (userLoading || pointsLoading || giftLoading) {
-    return <text>Loading...</text>;
+  const test = async () => {
+    if (!currentUser?.id) {
+        context.ui.showToast('User not found');
+        return;
+      }
+      try {
+        await updateUserPoints(context, currentUser.id, 1);
+        refreshData();
+        context.ui.showToast('Point added!');
+      } catch (error) {
+        console.error('Error updating user points:', error);
+        context.ui.showToast('Failed to update points');
+      }
+
   }
+
+
+
 
   // Show error if any errors occurred
   if (userError || pointsError || giftError) {
@@ -92,7 +112,9 @@ const ExperiencePost = (context: Devvit.Context) => {
       <button appearance="primary" disabled={hasClaimed ?? false} onPress={claimGift}>
         {hasClaimed ? 'Daily Gift Claimed' : 'Daily Gift (1000)'}
       </button>
-      
+      <button appearance="primary" onPress={test}>
+        Earn a Point!
+      </button>
     </vstack>
   );
 };
