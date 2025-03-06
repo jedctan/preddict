@@ -1,6 +1,6 @@
 // Learn more at developers.reddit.com/docs
-import { Devvit, useState , } from '@devvit/public-api';
-import ExperiencePost from './ExperiencePost.js';
+import { Devvit, useState } from '@devvit/public-api';
+import DropDownMenu from './dropDownMenu.js';
 
 Devvit.configure({
   redditAPI: true,
@@ -31,15 +31,17 @@ Devvit.addMenuItem({
     ui.navigateTo(post);
   },
 });
-
-// Add a post type definition
+// Add post type definitions
 Devvit.addCustomPostType({
-  name: 'Points Display Post',
+  name: 'Combined Experience Post',
   height: 'regular',
-  render: ExperiencePost,
-  
+  render: (context) => (
+    <vstack>
+      <DropDownMenu {...context} />
+      {/* Add other components here */}
+    </vstack>
+  ),
 });
-
 
 
 

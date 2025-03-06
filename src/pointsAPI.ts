@@ -4,41 +4,65 @@ Devvit.configure({
   redis: true,
 });
 
+
+// Fetch the user's points from the sorted set
 export async function fetchUserPoints(context: Devvit.Context, userId: string): Promise<number> {
-    const key = `user:${userId}:points`;
-    const points = await context.redis.get(key);
-    if (points === null || points === undefined) {
-      await context.redis.set(key, '0');
-      return 0;
-    }
-    return parseInt(points, 10);
+  const points = await context.redis.zScore('userPoints', userId);
+  if (points === null || points === undefined) {
+    await context.redis.zAdd('userPoints', { score: 0, member: userId });
+    return 0;
   }
-  
+  return points;
+}
+
+// Update the user's points by the given delta
   export async function updateUserPoints(context: Devvit.Context, userId: string, delta: number): Promise<void> {
-    const key = `user:${userId}:points`;
-    await context.redis.incrBy(key, delta);
+    await context.redis.zIncrBy('userPoints', userId, delta);
   }
 
+
+
+
+
+// Check if the user is new by checking if they have a score in the sorted set
   export async function isNewUser(context: Devvit.Context, userId: string): Promise<boolean> {
-    const key = `user:${userId}:points`;
-    const points = await context.redis.get(key);
-    return points === null || points === undefined;
+    const score = await context.redis.zScore('userPoints', userId);
+    return score === undefined;
   }
 
 
-  export async function addNewUser(context: Devvit.Context, userId: string): Promise<void> {
-    const pointsKey = `user:${userId}:points`;
-    const giftKey = `user:${userId}:dailyGift`;
+
+
+
+// Add a new user to the sorted set with a score of 0
+  export async function addNewUser(context: Devvit.Context, userId: string, userName: string): Promise<void> {
+    const nameKey = `user:${userId}:name`;
     
-    // Set initial points to 0
-    await context.redis.set(pointsKey, '0');
-    // Set daily gift status to false (as a string)
-    await context.redis.set(giftKey, 'false');
+    // Add user to the sorted set with initial score of 0
+    await context.redis.zAdd('userPoints', { score: 0, member: userId });
+    
+    // Set the user's name
+    await context.redis.set(nameKey, userName);
   }
 
 
+// Fetch the top 5 users by points
+  export async function fetchTopUsers(context: Devvit.Context): Promise<Array<{ userName: string, points: number }>> {
+    // Use ZRANGE to get the top 5 users by points, in reverse order
+    const topUsers = await context.redis.zRange('userPoints', 0, 4, { by: 'rank', reverse: true });
+    console.log('Top users:', topUsers);
+    // Fetch names for each user and create the result array
+    const result = await Promise.all(topUsers.map(async ({ member: userId, score }) => {
+      const nameKey = `user:${userId}:name`;
+      const userName = await context.redis.get(nameKey) || 'Unknown';
+      return { userName, points: Number(score) };
+    }));
+  
+    return result;
+  }
 
 
+// Fetch the status of the user's daily gift
 export async function fetchDailyGiftStatus(context: Devvit.Context, userId: string): Promise<boolean> {
     const giftKey = `user:${userId}:dailyGift`;
     const value = await context.redis.get(giftKey);
@@ -46,9 +70,11 @@ export async function fetchDailyGiftStatus(context: Devvit.Context, userId: stri
     return value === 'true';
   }
 
-
+// Update the user's daily gift status
   export async function updateGiftKey(context: Devvit.Context, userId: string): Promise<void> {
     const giftKey = `user:${userId}:dailyGift`; 
     await context.redis.set(giftKey, 'true');
     await context.redis.expire(giftKey, 86400);
 }
+
+

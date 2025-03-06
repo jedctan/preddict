@@ -1,4 +1,4 @@
-import { Devvit, useAsync, useState } from '@devvit/public-api';
+import { Devvit, useAsync, useState  } from '@devvit/public-api';
 import { fetchUserPoints, updateUserPoints, isNewUser, addNewUser , fetchDailyGiftStatus, updateGiftKey } from './pointsAPI.js';
 
 const ExperiencePost = (context: Devvit.Context) => {
@@ -20,7 +20,7 @@ const ExperiencePost = (context: Devvit.Context) => {
   useAsync(
     async () => {
       if (userIsNew && currentUser?.id) {
-        await addNewUser(context, currentUser.id);
+        await addNewUser(context, currentUser.id , currentUser.name);
         return true;
       }
       return false;
@@ -28,7 +28,7 @@ const ExperiencePost = (context: Devvit.Context) => {
     { depends: [userIsNew, currentUser?.id ?? null] }
   );
 
-
+  
   const [refreshCounter, setRefreshCounter] = useState(0);
 
   //Calls method fetchUserPOints from puclib-api/pointsAPI.ts to get the user points
@@ -40,6 +40,8 @@ const ExperiencePost = (context: Devvit.Context) => {
     { depends: [currentUser?.id ?? null, refreshCounter] }
   );
 
+
+  //Increments the refreshCounter to refresh the data
   const refreshData = () => {
     setRefreshCounter((prev) => {
       const newValue = prev + 1;
@@ -61,6 +63,8 @@ const ExperiencePost = (context: Devvit.Context) => {
   );
 
 
+
+  //Claims the daily gift
   const claimGift = async () => {
     if (!currentUser?.id) {
       context.ui.showToast('User not found');
@@ -81,7 +85,7 @@ const ExperiencePost = (context: Devvit.Context) => {
   };
 
 
-
+//Test function to add a point to the user
   const test = async () => {
     if (!currentUser?.id) {
         context.ui.showToast('User not found');
