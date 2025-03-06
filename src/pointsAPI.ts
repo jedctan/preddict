@@ -37,12 +37,19 @@ export async function fetchUserPoints(context: Devvit.Context, userId: string): 
 // Add a new user to the sorted set with a score of 0
   export async function addNewUser(context: Devvit.Context, userId: string, userName: string): Promise<void> {
     const nameKey = `user:${userId}:name`;
-    
+    const giftKey = `user:${userId}:dailyGift`;
+
     // Add user to the sorted set with initial score of 0
     await context.redis.zAdd('userPoints', { score: 0, member: userId });
     
     // Set the user's name
     await context.redis.set(nameKey, userName);
+
+    const userNametest = await context.redis.get(nameKey) || 'Unknown';
+      console.log('Adding name:', userNametest);
+
+    await context.redis.set(giftKey, 'false');
+
   }
 
 
@@ -54,7 +61,9 @@ export async function fetchUserPoints(context: Devvit.Context, userId: string): 
     // Fetch names for each user and create the result array
     const result = await Promise.all(topUsers.map(async ({ member: userId, score }) => {
       const nameKey = `user:${userId}:name`;
+      console.log('Fetching name for user:', nameKey);
       const userName = await context.redis.get(nameKey) || 'Unknown';
+      console.log('Fetched name:', userName);
       return { userName, points: Number(score) };
     }));
   
