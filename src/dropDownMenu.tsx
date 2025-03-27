@@ -2,6 +2,8 @@ import { Devvit, useState, Context } from '@devvit/public-api';
 import DailyClaim from './DailyClaim.js';
 import PointsRanking from './PointsRanking.js';
 import GuessingRanking from './GuessRanking.js';
+import PollForm from './PollCreate.js';
+import YourPolls from './YourPolls.js';
 
 // DropdownMenu component
 const DropdownMenu = (context: Context) => {
@@ -39,11 +41,19 @@ const DropdownMenu = (context: Context) => {
                     <button onPress={() => selectOption('TopGuesser')}>
                         TopGuesser
                     </button>
+                    <button onPress={() => selectOption('CreatePoll')}>
+                        Create Poll
+                    </button>
+                    <button onPress={() => selectOption('YourPolls')}>
+                        YourPolls
+                    </button>
                 </vstack>
             )}
             {selectedAction === 'experience' && <DailyClaim {...context} />}
             {selectedAction === 'PointsRanking' && <PointsRanking {...context} />}
             {selectedAction === 'TopGuesser' && <GuessingRanking {...context} />}
+            {selectedAction === 'CreatePoll' && <PollForm {...context} />}
+            {selectedAction === 'YourPolls' && <YourPolls {...context} />}
 
         </vstack>
     );

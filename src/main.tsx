@@ -1,14 +1,9 @@
-// Learn more at developers.reddit.com/docs
-import { Devvit, useState } from '@devvit/public-api';
+
+import { Devvit, useState, useAsync , Context} from '@devvit/public-api';
 import DropDownMenu from './dropDownMenu.js';
 
-Devvit.configure({
-  redditAPI: true,
-  http: true,
-  redis: true,
-});
 
-// Add a menu item to the subreddit menu for instantiating the new experience post
+
 Devvit.addMenuItem({
   label: 'Add my post',
   location: 'subreddit',
@@ -31,18 +26,26 @@ Devvit.addMenuItem({
     ui.navigateTo(post);
   },
 });
-// Add post type definitions
-Devvit.addCustomPostType({
-  name: 'Combined Experience Post',
-  height: 'regular',
-  render: (context) => (
-    <vstack>
-      <DropDownMenu {...context} />
-      {/* Add other components here */}
-    </vstack>
-  ),
+
+// Configure Devvit
+Devvit.configure({
+  redditAPI: true,
+  redis: true,
 });
 
-
+// Add your custom post type
+Devvit.addCustomPostType({
+  name: 'Combined Experience Post',
+  render: (context) => {
+    
+    
+    return (
+      <vstack>
+        <DropDownMenu {...context} />
+        
+      </vstack>
+    );
+  },
+});
 
 export default Devvit;
