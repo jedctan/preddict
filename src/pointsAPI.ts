@@ -134,7 +134,10 @@ export async function updateUserGuesses(context: Devvit.Context, userId: string)
 export async function saveFormData( context: Devvit.Context,  postId: string,  userId: string,  question: string,  options: string[] ): Promise<void> {
     // Create key for storing poll data
     const pollKey = `poll:${postId}`;
-  
+    const votersKey = `poll:${postId}:voters`;
+    await context.redis.zAdd(votersKey, { score: 0, member: "placeholder" });
+    await context.redis.zRem(votersKey, ["placeholder"]); // Optional: remove it right away
+
     // Use a transaction to ensure all operations complete together
     const txn = await context.redis.watch(pollKey);
     await txn.multi();
@@ -153,7 +156,7 @@ export async function saveFormData( context: Devvit.Context,  postId: string,  u
       createdAt: Date.now().toString(),
       optionCount: options.length.toString(),
       options: JSON.stringify(optionsDict), // Store options dictionary as a JSON string
-      voters: JSON.stringify([])
+      
     });
     
     // Execute all commands atomically
@@ -183,60 +186,167 @@ export async function saveFormData( context: Devvit.Context,  postId: string,  u
     const pollData = await context.redis.hGetAll(pollKey);
     return pollData || {};
   }
+  export async function addVote(context: Devvit.Context, pollId: string, option: string, userId: string): Promise<void> {
+    // Create keys for storing poll data
+    const pollKey = `poll:${pollId}`;
+    const votersKey = `poll:${pollId}:voters`;
+    
+    try {
+      // Check if user has already voted
+      const hasVotedinfo = await hasUserVoted(context, pollId, userId);
+      const { hasVoted, votedOption } = hasVotedinfo;
 
-  export async function addVote(context: Devvit.Context,  pollId: string, option: string, userId: string): Promise<void> {
-  
-      // Create key for storing poll data
-      const pollKey = `poll:${pollId}`;
+
+      if (hasVoted) {
+        throw new Error('You have already voted in this poll');
+      }
       
-      // Use a transaction to ensure all operations complete atomically
+      // Get current poll data
+      const pollData = await context.redis.hGetAll(pollKey);
+      
+      if (!pollData || !pollData.options) {
+        throw new Error('Poll not found');
+      }
+      
+      // Parse the options from string to object
+      const options = JSON.parse(pollData.options);
+      
+      // Check if the option exists
+      if (!(option in options)) {
+        throw new Error('Invalid option');
+      }
+      
+      // Start transaction
       const txn = await context.redis.watch(pollKey);
+      await txn.multi();
+      
+      // Increment the vote count for the selected option
+      const currentVotes = parseInt(options[option] || '0', 10);
+      options[option] = (currentVotes + 1).toString();
+      
+      // Update the poll options
+      await txn.hSet(pollKey, {
+        options: JSON.stringify(options)
+      });
+      
+      // Add user to voters sorted set with current timestamp as score
+      await txn.zAdd(votersKey, { score: Date.now(), member: `${userId}:${option}` });
+      
+      // Execute the transaction
+      await txn.exec();
+      
+      console.log(`Vote added for option "${option}" in poll ${pollId} by user ${userId}`);
+    } catch (error) {
+      console.error('Error adding vote:', error);
+      throw error;
+    }
+  }
+
+
+
+    export async function hasUserVoted(context: Devvit.Context, pollId: string, userId: string): Promise<{ hasVoted: boolean; votedOption: string | null }> {
+      // Create the key for the voters sorted set
+      const votersKey = `poll:${pollId}:voters`;
       
       try {
-        // Get current poll data
-        const pollData = await context.redis.hGetAll(pollKey);
+
         
-        if (!pollData || !pollData.options) {
-          throw new Error('Poll not found');
+        // Get all members from the sorted set
+        const members = await context.redis.zRange(votersKey, 0, -1);
+        console.log(`Members without by:score:`, JSON.stringify(members));
+
+        // Find any member that starts with the userId
+        const userVote = members.find(item => item.member.startsWith(`${userId}:`));
+        console.log(`User vote found:`, userVote);
+
+        if (userVote != undefined) {
+          // Extract the option from the member string (format: "userId:option")
+          const votedOption = userVote.member.split(':')[1];
+          
+          console.log(`User ${userId} has voted in poll ${pollId}: true`);
+          console.log(`Voted for option: ${votedOption}`);
+          
+          return { hasVoted: true, votedOption };
         }
         
-        // Parse the options and voters from strings to objects
-        const options = JSON.parse(pollData.options);
-        const voters = JSON.parse(pollData.voters || '[]');
-        
-        // Check if user has already voted
-        if (voters.includes(userId)) {
-          throw new Error('You have already voted in this poll');
-        }
-        
-        // Check if the option exists
-        if (!(option in options)) {
-          throw new Error('Invalid option');
-        }
-        
-        // Start transaction
-        await txn.multi();
-        
-        // Increment the vote count for the selected option
-        const currentVotes = parseInt(options[option] || '0', 10);
-        options[option] = (currentVotes + 1).toString();
-        
-        // Add user to voters list
-        voters.push(userId);
-        
-        // Update the poll data
-        await txn.hSet(pollKey, {
-          options: JSON.stringify(options),
-          voters: JSON.stringify(voters)
-        });
-        
-        // Execute the transaction
-        await txn.exec();
-        
-        console.log(`Vote added for option "${option}" in poll ${pollId} by user ${userId}`);
+        console.log(`User ${userId} has voted in poll ${pollId}: false`);
+        return { hasVoted: false, votedOption: null };
       } catch (error) {
-        // If there's an error, the transaction will be automatically discarded
-        console.error('Error adding vote:', error);
-        throw error;
+        console.error(`Error checking if user ${userId} voted in poll ${pollId}:`, error);
+        return { hasVoted: false, votedOption: null }; // Default to false in case of error
       }
     }
+
+
+
+
+
+
+
+export async function finializePoll(context: Devvit.Context, pollId: string, answer: string): Promise<void> {
+
+  const votersKey = `poll:${pollId}:voters`;
+ 
+  const pollKey = `poll:${pollId}`;
+  const pollData = await context.redis.hGetAll(pollKey);
+  
+  if (!pollData || !pollData.options) {
+    throw new Error('Poll not found or has no options');
+  }
+  
+  // Parse the options from JSON string
+  const options = JSON.parse(pollData.options);
+  
+  // Calculate total votes
+  let totalVotes = 0;
+  Object.values(options).forEach(votes => {
+    totalVotes += parseInt(votes as string, 10);
+  });
+  
+  // Calculate percentages for each option
+  const percentages: Record<string, number> = {};
+  
+  Object.entries(options).forEach(([option, votes]) => {
+    const voteCount = parseInt(votes as string, 10);
+    // Calculate percentage and round to 1 decimal place
+    const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 1000) / 10 : 0;
+    percentages[option] = percentage;
+  });
+
+
+  const correctPercentage = percentages[answer];
+
+
+  const members = await context.redis.zRange(votersKey, 0, -1);
+
+
+  const MAX_POINTS = 100;
+  let points = 0;
+
+
+  for (const member of members) {
+    console.log(member);
+    const votedOption = member.member.split(':')[1];
+    const userId = member.member.split(':')[0];
+    const userPercentage = percentages[votedOption];
+
+    if( votedOption === answer){
+      const userId = member.member.split(':')[0];
+      await updateUserGuesses(context, userId);
+      const confidenceGap = correctPercentage - Math.max(...Object.values(percentages).filter(p => p !== correctPercentage));
+      const closeness = 1 - confidenceGap;
+      points = Math.round(closeness * MAX_POINTS);
+
+    }else{
+
+      const wrongness = correctPercentage - userPercentage;
+      points = -Math.round(wrongness * MAX_POINTS);
+    }
+
+
+
+    await updateUserPoints(context, userId, points);
+  }
+
+}
+
