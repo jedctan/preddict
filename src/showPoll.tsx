@@ -34,7 +34,7 @@ const ShowPoll = ({ pollId, onBack, context }: ShowPollProps) => {
   }
 
   if (!pollData || Object.keys(pollData).length === 0) {
-    return <text color="red">Poll not found or data is empty</text>;
+    return <text color="red">Poll not found or data is empty {pollId} </text>;
   }
 
   // Rest of your code remains the same

@@ -1,5 +1,7 @@
 import { Devvit, Context, useForm } from '@devvit/public-api';
 import { saveFormData } from './pointsAPI.js';
+import PollPreview from './PollPreview.js';
+
 const PollForm = (context: Context) => {
   const pollForm = useForm(
     {
@@ -43,20 +45,29 @@ const PollForm = (context: Context) => {
             const { question, option1, option2, option3, option4 } = values;
             
             // Filter out empty options
-            const options = [option1, option2, option3, option4].filter(option => option);
+            const options = [option1, option2, option3, option4].filter((option): option is string => !!option);
 
-            const postId = `poll_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+            // const postId = `poll_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-            
+            const subreddit = await context.reddit.getCurrentSubreddit();
+
+            // submitPost creates subreddit post
+            const post = await context.reddit.submitPost({
+              title: `${question}`,
+              subredditName: subreddit.name, 
+              // post preview, display name for now
+              preview: <PollPreview question={question} options={options} />,
+            });
+
             // Instead of creating a post, just store the poll data
             await saveFormData(
               context,
-              postId, // Use existing post ID
+              post.id, // Use existing post ID
               context.userId || 'Default', // Current user ID or if not signed in Default
               question as string,
               options as string[]
             );
-            
+
             context.ui.showToast('Poll data saved successfully!');
           } catch (error) {
             context.ui.showToast('Failed to save poll: ' + error);

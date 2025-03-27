@@ -1,8 +1,7 @@
 
 import { Devvit, useState, useAsync , Context} from '@devvit/public-api';
 import DropDownMenu from './dropDownMenu.js';
-
-
+import { Router } from './Router.js';
 
 Devvit.addMenuItem({
   label: 'Add my post',
@@ -34,18 +33,24 @@ Devvit.configure({
 });
 
 // Add your custom post type
+// Devvit.addCustomPostType({
+//   name: 'Combined Experience Post',
+//   render: (context) => {
+    
+    
+//     return (
+//       <vstack>
+//         <DropDownMenu {...context} />
+        
+//       </vstack>
+//     );
+//   },
+// });
+
 Devvit.addCustomPostType({
   name: 'Combined Experience Post',
-  render: (context) => {
-    
-    
-    return (
-      <vstack>
-        <DropDownMenu {...context} />
-        
-      </vstack>
-    );
-  },
+  render: Router,
 });
+
 
 export default Devvit;
