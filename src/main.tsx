@@ -35,13 +35,10 @@ Devvit.configure({
 // Add your custom post type
 // Devvit.addCustomPostType({
 //   name: 'Combined Experience Post',
-//   render: (context) => {
-    
-    
+//   render: (context) => { 
 //     return (
 //       <vstack>
 //         <DropDownMenu {...context} />
-        
 //       </vstack>
 //     );
 //   },

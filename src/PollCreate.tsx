@@ -47,8 +47,6 @@ const PollForm = (context: Context) => {
             // Filter out empty options
             const options = [option1, option2, option3, option4].filter((option): option is string => !!option);
 
-            // const postId = `poll_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
             const subreddit = await context.reddit.getCurrentSubreddit();
 
             // submitPost creates subreddit post
@@ -59,7 +57,7 @@ const PollForm = (context: Context) => {
               preview: <PollPreview question={question} options={options} />,
             });
 
-            // Instead of creating a post, just store the poll data
+            // Save poll data using id generated from submitPost()
             await saveFormData(
               context,
               post.id, // Use existing post ID
