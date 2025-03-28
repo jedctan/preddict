@@ -2,13 +2,10 @@
 import { Devvit, useState, useAsync , Context , useForm, FormField, ValidatedFormField, ValidatedSelectField , SettingScope } from '@devvit/public-api';
 import DropDownMenu from './dropDownMenu.js';
 import { Router } from './Router.js';
-<<<<<<< HEAD
 import PollForm from './PollCreate.js';
 import {addToEndedPost, GetEndedPolls, getPollData, finializePoll, removeFromEndedPost} from './pointsAPI.js';
 
-=======
 import { newPinnedPost } from './newPinnedPost.js';
->>>>>>> pinned-post
 
 Devvit.addMenuItem({
   label: 'Add my post',
@@ -64,7 +61,6 @@ Devvit.addCustomPostType({
 
 
 
-<<<<<<< HEAD
 export const POLL_EXPIRATION_JOB = 'poll-expiration';
 
 Devvit.addSchedulerJob({
@@ -192,13 +188,12 @@ export async function showEndedPollsList(context: Devvit.Context) {
       }
       
       // Create options array for the form
-      const optionsArray = Object.entries(options).map(([key, value]) => ({
-        label: value as string,
-        value: key
-      }));
-      
-      // Create a NEW details form
-      // Create a NEW details form
+      // Convert the options object into an array for the select field
+const optionsArray = Object.keys(options).map(option => ({
+  label: option,  // Show the option text in the dropdown
+  value: option   // Store the option text as the selected value
+}));
+
 const pollDetailsForm = Devvit.createForm(
   {
     title: "Poll Details",
@@ -208,7 +203,7 @@ const pollDetailsForm = Devvit.createForm(
         type: "select" as const,
         name: "selectedOption",
         label: "Select an option",
-        options: optionsArray,
+        options: optionsArray, // Displays options correctly
         multiSelect: false,
         required: true
       }
@@ -216,31 +211,29 @@ const pollDetailsForm = Devvit.createForm(
     acceptLabel: "Submit",
     cancelLabel: "Back to List",
     onCancel: async () => {
-      // This will be called when the user clicks the Cancel button
       await showPollsList();
     }
   },
   async (detailsEvent, detailsContext) => {
-    // This handles the Submit button
+    // Get the selected option (which is now correctly the option name)
     const selectedOption = Array.isArray(detailsEvent.values.selectedOption)
       ? detailsEvent.values.selectedOption[0]
       : detailsEvent.values.selectedOption as string;
-      
-    const selectedOptionText = options[selectedOption] || "Unknown option";
-    
+
+    console.log("Selected Option:", selectedOption); // Logs the selected option text
+
     try {
-      // Process the selection (save to Redis or perform other actions)
       detailsContext.ui.showToast(`Selected option: ${selectedOption}`);
-      finializePoll(context, pollId, selectedOption);
-      // Important: Use setTimeout to ensure the toast is shown before navigating
-      //removeFromEndedPost(context, pollId);
-      
+      finializePoll(context, pollId, selectedOption); // Pass the selected option text
+      removeFromEndedPost(context, pollId);
+
     } catch (error) {
       console.error("Error saving selection:", error);
       detailsContext.ui.showToast("Error saving selection");
     }
   }
 );
+
       
       // Add a separate handler for the Cancel button
       
@@ -289,7 +282,5 @@ Devvit.addMenuItem({
     }
   }
 });
-=======
 
->>>>>>> pinned-post
 export default Devvit;
