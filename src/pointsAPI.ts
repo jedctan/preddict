@@ -1,4 +1,4 @@
-import { Devvit } from '@devvit/public-api';
+import { Devvit, JobContext  } from '@devvit/public-api';
 
 Devvit.configure({
   redis: true,
@@ -308,14 +308,21 @@ export async function finializePoll(context: Devvit.Context, pollId: string, ans
   
   Object.entries(options).forEach(([option, votes]) => {
     const voteCount = parseInt(votes as string, 10);
+    console.log(`Votes for ${option}: ${voteCount}`);
     // Calculate percentage and round to 1 decimal place
     const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 1000) / 10 : 0;
-    percentages[option] = percentage;
+    console.log(`Percentage for ${option}: ${percentage}`);
+    percentages[option] = (percentage/ 100);
   });
 
+  if (!(answer in percentages)) {
+    console.error(`Answer "${answer}" not found in poll options`);
+    // Either return early or set a default value
+    return; // Or set correctPercentage to a default value
+  }
 
-  const correctPercentage = percentages[answer];
-
+  const correctPercentage = percentages[answer] ;
+  console.log(`Correct percentage for ${answer}: ${correctPercentage}`);
 
   const members = await context.redis.zRange(votersKey, 0, -1);
 
@@ -333,20 +340,64 @@ export async function finializePoll(context: Devvit.Context, pollId: string, ans
     if( votedOption === answer){
       const userId = member.member.split(':')[0];
       await updateUserGuesses(context, userId);
-      const confidenceGap = correctPercentage - Math.max(...Object.values(percentages).filter(p => p !== correctPercentage));
+      const confidenceGap = correctPercentage - Math.max(
+        ...Object.values(percentages)
+          .filter(p => p !== correctPercentage) // safer than comparing raw float
+      );
       const closeness = 1 - confidenceGap;
-      points = Math.round(closeness * MAX_POINTS);
+      points = Math.max(5, Math.round(closeness * MAX_POINTS));
+      console.log(`User Voted Correct`);
 
     }else{
 
       const wrongness = correctPercentage - userPercentage;
       points = -Math.round(wrongness * MAX_POINTS);
+      console.log(`User Voted InCorrect`);
     }
 
-
+    console.log(`User ${userId} voted for ${votedOption} and got ${points} points`);
 
     await updateUserPoints(context, userId, points);
   }
 
 }
 
+
+
+export async function GetEndedPolls(context: Devvit.Context): Promise<Array<{ pollId: string}>> {
+  const endedPollsKey = "ended_polls_list";
+  const endedPolls = await context.redis.zRange(endedPollsKey, 0, -1);
+
+
+
+  return endedPolls.map(poll => ({ pollId: poll.member }));
+}
+
+export async function addToEndedPost(context: JobContext, pollId: string): Promise<void> {
+  try {
+    // Get the current list of ended polls from Redis
+    const endedPollsKey = "ended_polls_list";
+    await context.redis.zAdd(endedPollsKey, {member: pollId, score: Date.now()});
+    console.log(`Poll ${pollId} added to ended posts`);
+    // Parse the JSON string to get the array
+  } catch (error) {
+    // Log any errors that occur
+    console.error(`Failed to add poll ${pollId} to ended posts: ${error}`);
+  }
+}
+
+
+export async function removeFromEndedPost(context: Devvit.Context, pollId: string): Promise<void> {
+  try {
+    // Use the same key as in the addToEndedPost function
+    const endedPollsKey = "ended_polls_list";
+    
+    // Remove the poll from the sorted set
+    await context.redis.zRem(endedPollsKey, [pollId]);
+    
+    console.log(`Poll ${pollId} removed from ended posts`);
+  } catch (error) {
+    // Log any errors that occur
+    console.error(`Failed to remove poll ${pollId} from ended posts: ${error}`);
+  }
+}

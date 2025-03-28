@@ -1,6 +1,9 @@
 import { Devvit, Context, useForm } from '@devvit/public-api';
 import { saveFormData } from './pointsAPI.js';
 import PollPreview from './PollPreview.js';
+import * as chrono from 'chrono-node';
+
+import { POLL_EXPIRATION_JOB } from './main.js';
 
 const PollForm = (context: Context) => {
   const pollForm = useForm(
@@ -35,6 +38,13 @@ const PollForm = (context: Context) => {
           label: 'Option 4 (Optional)',
           type: 'string',
         },
+        {
+            name: 'expirationDate',
+            label: 'Poll Expiration Date',
+            type: 'string',
+            helpText: 'When should this poll expire? (e.g., "in 2 days", "tomorrow at 5pm")',
+            required: true,
+          }
       ],
       title: 'Create a Poll',
       acceptLabel: 'Create Poll',
@@ -42,7 +52,7 @@ const PollForm = (context: Context) => {
     async (values) => {
         try {
             // Get form values
-            const { question, option1, option2, option3, option4 } = values;
+            const { question, option1, option2, option3, option4 ,expirationDate} = values;
             
             // Filter out empty options
             const options = [option1, option2, option3, option4].filter((option): option is string => !!option);
@@ -64,7 +74,20 @@ const PollForm = (context: Context) => {
               context.userId || 'Default', // Current user ID or if not signed in Default
               question as string,
               options as string[]
-            );
+            );  
+
+            const parsedExpirationDate = chrono.parseDate(expirationDate as string);
+
+
+            await context.scheduler.runJob({
+                name: POLL_EXPIRATION_JOB,
+                runAt: parsedExpirationDate || new Date(Date.now() + 1000 * 60 * 60 * 24), // Default to 24 hours from now if parsing fails
+                data: {
+                  postId: post.id,
+                  question: question
+                }
+            });
+  
 
             context.ui.showToast('Poll data saved successfully!');
           } catch (error) {
