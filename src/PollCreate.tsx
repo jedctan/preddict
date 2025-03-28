@@ -66,6 +66,8 @@ const PollForm = (context: Context) => {
               // post preview, display name for now
               preview: <PollPreview question={question} options={options} />,
             });
+            const parsedExpirationDate = chrono.parseDate(expirationDate as string);
+            const expirationDateString = parsedExpirationDate ? parsedExpirationDate.toISOString() : '';
 
             // Save poll data using id generated from submitPost()
             await saveFormData(
@@ -73,10 +75,10 @@ const PollForm = (context: Context) => {
               post.id, // Use existing post ID
               context.userId || 'Default', // Current user ID or if not signed in Default
               question as string,
-              options as string[]
+              options as string[],
+              expirationDateString 
             );  
 
-            const parsedExpirationDate = chrono.parseDate(expirationDate as string);
 
 
             await context.scheduler.runJob({

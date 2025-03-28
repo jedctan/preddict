@@ -131,7 +131,7 @@ export async function updateUserGuesses(context: Devvit.Context, userId: string)
 
 
 
-export async function saveFormData( context: Devvit.Context,  postId: string,  userId: string,  question: string,  options: string[] ): Promise<void> {
+export async function saveFormData( context: Devvit.Context,  postId: string,  userId: string,  question: string,  options: string[] , experation: string ): Promise<void> {
     // Create key for storing poll data
     const pollKey = `poll:${postId}`;
     const votersKey = `poll:${postId}:voters`;
@@ -156,7 +156,8 @@ export async function saveFormData( context: Devvit.Context,  postId: string,  u
       createdAt: Date.now().toString(),
       optionCount: options.length.toString(),
       options: JSON.stringify(optionsDict), // Store options dictionary as a JSON string
-      
+      expiration: experation // Add the expiration date to the metadata
+
     });
     
     // Execute all commands atomically
@@ -253,23 +254,23 @@ export async function saveFormData( context: Devvit.Context,  postId: string,  u
         
         // Get all members from the sorted set
         const members = await context.redis.zRange(votersKey, 0, -1);
-        console.log(`Members without by:score:`, JSON.stringify(members));
+        //console.log(`Members without by:score:`, JSON.stringify(members));
 
         // Find any member that starts with the userId
         const userVote = members.find(item => item.member.startsWith(`${userId}:`));
-        console.log(`User vote found:`, userVote);
+        //console.log(`User vote found:`, userVote);
 
         if (userVote != undefined) {
           // Extract the option from the member string (format: "userId:option")
           const votedOption = userVote.member.split(':')[1];
           
-          console.log(`User ${userId} has voted in poll ${pollId}: true`);
-          console.log(`Voted for option: ${votedOption}`);
+          //console.log(`User ${userId} has voted in poll ${pollId}: true`);
+          //console.log(`Voted for option: ${votedOption}`);
           
           return { hasVoted: true, votedOption };
         }
         
-        console.log(`User ${userId} has voted in poll ${pollId}: false`);
+        //console.log(`User ${userId} has voted in poll ${pollId}: false`);
         return { hasVoted: false, votedOption: null };
       } catch (error) {
         console.error(`Error checking if user ${userId} voted in poll ${pollId}:`, error);
@@ -351,7 +352,7 @@ export async function finializePoll(context: Devvit.Context, pollId: string, ans
     }else{
 
       const wrongness = correctPercentage - userPercentage;
-      points = -Math.round(wrongness * MAX_POINTS);
+      points = Math.min(-5,-Math.round(wrongness * MAX_POINTS));
       console.log(`User Voted InCorrect`);
     }
 
@@ -396,11 +397,38 @@ export async function removeFromEndedPost(context: Devvit.Context, pollId: strin
     await context.redis.zRem(endedPollsKey, [pollId]);
     
     console.log(`Poll ${pollId} removed from ended posts`);
+
+
+    const expiredPollsKey = "expired_polls_list";
+    await context.redis.zAdd(expiredPollsKey, {member: pollId, score: Date.now()});
+
+
   } catch (error) {
     // Log any errors that occur
     console.error(`Failed to remove poll ${pollId} from ended posts: ${error}`);
   }
 }
+
+
+export async function isExpiredPoll(context: Devvit.Context, pollId: string): Promise<boolean> {
+  const endedPollsKey = "ended_polls_list";
+
+  const score = await context.redis.zScore('expired_polls_list', pollId);
+  const score2 = await context.redis.zScore(endedPollsKey, pollId);
+
+  if (score != undefined || score2 != undefined) {
+    return true;
+  }else{
+    return false;
+  }
+
+  
+}
+
+
+
+
+
   
   export async function getPostType(context: Devvit.Context, postId: string): Promise<string | null> {
     const pollKey = `poll:${postId}`;
@@ -408,3 +436,6 @@ export async function removeFromEndedPost(context: Devvit.Context, pollId: strin
     return postType || null; // Return null if "postType" does not exist (meaning it's not pinned)
   }
   
+
+
+

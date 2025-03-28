@@ -4,14 +4,15 @@ import { fetchTopUsers_Guesses } from './pointsAPI.js';
 const GuessRanking = (context: Devvit.Context) => {
 
 
-    //const { data: topUsers, loading, error } = useAsync(async () => {
+    const { data: topUsers, loading, error } = useAsync(async () => {
         //console.log('Fetching top users with context:', context);
-    //    const users = await fetchTopUsers_Guesses(context);
-     //   console.log('Fetched users:', users);
-     //   return users;
-    //});
+        const users = await fetchTopUsers_Guesses(context);
+       //console.log('Fetched users:', users);
+       return users;
+    });
 
 // temp display of topUSers as polling system is not up yet 
+/*
     const topUsers = [
         { userName: 'User1', guesses: 100 },
         { userName: 'User2', guesses: 90 },
@@ -19,7 +20,7 @@ const GuessRanking = (context: Devvit.Context) => {
         { userName: 'User4', guesses: 70 },
         { userName: 'User5', guesses: 60 }
     ];
-
+*/
     //if (loading) {
     //    return <text>Loading...</text>;
     //}
@@ -27,7 +28,7 @@ const GuessRanking = (context: Devvit.Context) => {
     //    return <text>Error loading leaderboard</text>;
     //}
 
-    console.log('topUsers:', topUsers);
+    //console.log('topUsers:', topUsers);
 
     return (
         <vstack>
@@ -35,7 +36,7 @@ const GuessRanking = (context: Devvit.Context) => {
             {topUsers && topUsers.length > 0 ? (
                 topUsers.map((user, index) => (
                     <text key={`${user?.userName ?? index}`}>
-                        {user?.userName ?? "Unknown"} - {user?.guesses ?? 0} pts
+                        {user?.userName ?? "Unknown"} - {user?.guesses ?? 0} Correct
                     </text>
                 ))
             ) : (

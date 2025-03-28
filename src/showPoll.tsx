@@ -1,6 +1,6 @@
-import { Devvit, useAsync, useState } from '@devvit/public-api';
+import { Devvit, useAsync, useState ,useInterval} from '@devvit/public-api';
 // Import the necessary functions
-import { getPollData, hasUserVoted } from './pointsAPI.js'; 
+import { getPollData, hasUserVoted , isExpiredPoll, isNewUser, addNewUser} from './pointsAPI.js'; 
 import { addVote } from './pointsAPI.js';
 
 interface ShowPollProps {
@@ -15,14 +15,16 @@ const ShowPoll = ({ pollId, onBack, context }: ShowPollProps) => {
   
   // Fetch the poll details and check if user has voted in parallel
   const { data, loading, error } = useAsync(async () => {
-    const [pollData, userVoteInfo] = await Promise.all([
+    const [pollData, userVoteInfo, pollExpired] = await Promise.all([
       getPollData(context, pollId),
-      hasUserVoted(context, pollId, context.userId || '')
+      hasUserVoted(context, pollId, context.userId || ''),
+      isExpiredPoll(context, pollId)
     ]);
     
     return {
       pollData,
-      userVoteInfo
+      userVoteInfo,
+      pollExpired
     };
   }, {
     depends: [refreshCounter] // This will re-run the async function when refreshCounter changes
@@ -45,14 +47,18 @@ const ShowPoll = ({ pollId, onBack, context }: ShowPollProps) => {
     return <text color="red">Poll not found or data is empty</text>;
   }
 
-  const { pollData, userVoteInfo } = data;
+  const { pollData, userVoteInfo , pollExpired } = data;
   const { hasVoted, votedOption } = userVoteInfo;
+  
 
-  console.log("hasVoted value:", hasVoted);
-  console.log("votedOption value:", votedOption);
-  console.log("userVoteInfo:", userVoteInfo);
+  //console.log("hasVoted value:", hasVoted);
+  //console.log("votedOption value:", votedOption);
+  //console.log("userVoteInfo:", userVoteInfo);
   const userHasVoted = hasVoted === true; // Force boolean evaluation
-
+  let disableButtons = false;
+  if (pollExpired|| userHasVoted) {
+    disableButtons = true; // Disable buttons if poll is expired or user has voted
+  }
   // Parse the options from JSON string back to an object
   const options = pollData.options ? JSON.parse(pollData.options) : {};
   
@@ -60,6 +66,23 @@ const ShowPoll = ({ pollId, onBack, context }: ShowPollProps) => {
     ? new Date(parseInt(pollData.createdAt)).toLocaleDateString() 
     : 'Unknown date';
 
+  const expirationDate = data?.pollData.expiration ? new Date(data.pollData.expiration).toLocaleString() : 'No expiration';
+
+
+  useInterval(() => {
+    if (data?.pollData?.expiration) {
+      const expirationTime = new Date(data.pollData.expiration).getTime();
+      const currentTime = Date.now();
+      
+      // If current time has passed expiration time and poll isn't marked as expired yet
+      if (currentTime >= expirationTime && !pollExpired) {
+        // Trigger a refresh
+        setRefreshCounter(prev => prev + 1);
+      }
+    }
+  }, 10000);
+
+  
   const handleVote = async (option: string) => {
     try {
       // Double-check if user has already voted
@@ -67,6 +90,32 @@ const ShowPoll = ({ pollId, onBack, context }: ShowPollProps) => {
         context.ui.showToast('You have already voted in this poll');
         return;
       }
+
+      const { data: currentUser, loading: userLoading, error: userError } = useAsync(async () => {
+          const user = await context.reddit.getCurrentUser();
+          return user ? { id: user.id, name: user.username } : null;
+        });
+        //Checks if the user is new or not
+        const { data: userIsNew, loading: newUserLoading, error: newUserError } = useAsync(
+          async () => {
+            if (!currentUser?.id) return false;
+            return await isNewUser(context, currentUser.id);
+          },
+          { depends: [currentUser?.id ?? null] }
+        );
+      
+        // If user is new, add them to the database (this useAsync runs when userIsNew is available)
+        useAsync(
+          async () => {
+            if (userIsNew && currentUser?.id) {
+              await addNewUser(context, currentUser.id , currentUser.name);
+              return true;
+            }
+            return false;
+          },
+          { depends: [userIsNew, currentUser?.id ?? null] }
+        );
+      
       
       await addVote(context, pollId, option, context.userId || 'Default');
       // Use our custom refetch function
@@ -87,7 +136,7 @@ const ShowPoll = ({ pollId, onBack, context }: ShowPollProps) => {
       <vstack gap="medium" padding="medium" border="thin" cornerRadius="medium">
         <text size="xlarge" weight="bold">{pollData.question}</text>
         <text size="small">Created: {createdDate}</text>
-        
+        <text size="small">Expires: {expirationDate}</text>
         <vstack gap="small" padding="small">
           <text weight="bold">Poll Options:</text>
           {Object.entries(options).map(([option, votes], index) => {
@@ -100,7 +149,7 @@ const ShowPoll = ({ pollId, onBack, context }: ShowPollProps) => {
                  appearance="primary"
                   onPress={() => handleVote(option)}
                   grow
-                  disabled={userHasVoted} // Disable all buttons if user has voted
+                  disabled={disableButtons} // Disable all buttons if user has voted
                 >
                   {isUserVote ? `${option} ✓` : option}
                 </button>

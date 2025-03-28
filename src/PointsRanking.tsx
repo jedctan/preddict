@@ -16,7 +16,7 @@ const PointsRanking = (context: Devvit.Context) => {
         return <text>Error loading leaderboard</text>;
     }
 
-    console.log('topUsers:', topUsers);
+    //console.log('topUsers:', topUsers);
 
     return (
         <vstack>
