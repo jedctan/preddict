@@ -111,8 +111,9 @@ const DailyClaim = (context: Devvit.Context) => {
   }
 
   return (
-    <vstack height="100%" width="100%" gap="medium" alignment="center middle">
-      <text size="large">{`Welcome ${currentUser?.name}! Your Points: ${points}`}</text>
+    <vstack height="100%" gap="medium" alignment="center middle">
+      <text wrap={true} size="large">{`Welcome ${currentUser?.name}!`}</text>
+      <text>{`Your Points: ${points}`}</text>
       <button appearance="primary" disabled={hasClaimed ?? false} onPress={claimGift}>
         {hasClaimed ? 'Daily Gift Claimed' : 'Daily Gift (1000)'}
       </button>

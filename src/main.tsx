@@ -2,9 +2,13 @@
 import { Devvit, useState, useAsync , Context , useForm, FormField, ValidatedFormField, ValidatedSelectField , SettingScope } from '@devvit/public-api';
 import DropDownMenu from './dropDownMenu.js';
 import { Router } from './Router.js';
+<<<<<<< HEAD
 import PollForm from './PollCreate.js';
 import {addToEndedPost, GetEndedPolls, getPollData, finializePoll, removeFromEndedPost} from './pointsAPI.js';
 
+=======
+import { newPinnedPost } from './newPinnedPost.js';
+>>>>>>> pinned-post
 
 Devvit.addMenuItem({
   label: 'Add my post',
@@ -29,11 +33,16 @@ Devvit.addMenuItem({
   },
 });
 
+// Add option to create new pinned post
+Devvit.addMenuItem(newPinnedPost);
+
 // Configure Devvit
 Devvit.configure({
   redditAPI: true,
   redis: true,
 });
+
+
 
 // Add your custom post type
 // Devvit.addCustomPostType({
@@ -49,11 +58,13 @@ Devvit.configure({
 
 Devvit.addCustomPostType({
   name: 'Combined Experience Post',
+  height: 'tall',
   render: Router,
 });
 
 
 
+<<<<<<< HEAD
 export const POLL_EXPIRATION_JOB = 'poll-expiration';
 
 Devvit.addSchedulerJob({
@@ -278,4 +289,7 @@ Devvit.addMenuItem({
     }
   }
 });
+=======
+
+>>>>>>> pinned-post
 export default Devvit;

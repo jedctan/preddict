@@ -15,7 +15,12 @@ const DropdownMenu = (context: Context) => {
 
     // Toggle the dropdown menu
     const toggleDropdown = () => {
-        setIsExpanded(!isExpanded);
+        if (isExpanded) {
+            setSelectedAction(null); // Reset the selected action when closing the menu
+        } else {
+            setSelectedAction(null); // Reset the selected action when reopening the menu
+        }
+        setIsExpanded(!isExpanded); // Toggle the menu's visibility
     };
 
 
@@ -28,25 +33,25 @@ const DropdownMenu = (context: Context) => {
     return (
         <vstack gap="small">
             <button onPress={toggleDropdown}>
-                {isExpanded ? 'Close Menu' : 'Open Menu'}
+                {isExpanded ? 'Close Menu' : '☰'}
             </button>
             {isExpanded && (
                 <vstack gap="small" padding="small">
-                    <button onPress={() => selectOption('experience')}>
-                        Claim Daily Gift
-                    </button>
-                    <button onPress={() => selectOption('PointsRanking')}>
-                        Points Ranking 
-                    </button>
-                    <button onPress={() => selectOption('TopGuesser')}>
-                        TopGuesser
-                    </button>
-                    <button onPress={() => selectOption('CreatePoll')}>
-                        Create Poll
-                    </button>
-                    <button onPress={() => selectOption('YourPolls')}>
-                        YourPolls
-                    </button>
+                <button onPress={() => selectOption('experience')} appearance="secondary">
+                    🎁 Claim Daily Gift
+                </button>
+                <button onPress={() => selectOption('PointsRanking')} appearance="secondary">
+                    📊 Points Ranking
+                </button>
+                <button onPress={() => selectOption('TopGuesser')} appearance="secondary">
+                    🏆 Top Guesser
+                </button>
+                <button onPress={() => selectOption('CreatePoll')} appearance="secondary">
+                    🗳️ Create Preddict
+                </button>
+                <button onPress={() => selectOption('YourPolls')} appearance="secondary">
+                    📌 Your Polls
+                </button>
                 </vstack>
             )}
             {selectedAction === 'experience' && <DailyClaim {...context} />}

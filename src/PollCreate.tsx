@@ -98,14 +98,14 @@ const PollForm = (context: Context) => {
 
   return (
     <vstack gap="medium" padding="medium">
-      <text style="heading">Create a New Poll</text>
+      <text style="heading">Create a Preddict</text>
       <button 
         appearance="primary"
         onPress={() => {
           context.ui.showForm(pollForm);
         }}
       >
-        Open Poll Creation Form
+        Create
       </button>
     </vstack>
   );

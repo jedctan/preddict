@@ -276,6 +276,7 @@ export async function saveFormData( context: Devvit.Context,  postId: string,  u
         return { hasVoted: false, votedOption: null }; // Default to false in case of error
       }
     }
+<<<<<<< HEAD
 
 
 
@@ -401,3 +402,12 @@ export async function removeFromEndedPost(context: Devvit.Context, pollId: strin
     console.error(`Failed to remove poll ${pollId} from ended posts: ${error}`);
   }
 }
+=======
+  
+  export async function getPostType(context: Devvit.Context, postId: string): Promise<string | null> {
+    const pollKey = `poll:${postId}`;
+    const postType = await context.redis.hGet(pollKey, 'postType');
+    return postType || null; // Return null if "postType" does not exist (meaning it's not pinned)
+  }
+  
+>>>>>>> pinned-post
