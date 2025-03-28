@@ -240,3 +240,10 @@ export async function saveFormData( context: Devvit.Context,  postId: string,  u
         throw error;
       }
     }
+  
+  export async function getPostType(context: Devvit.Context, postId: string): Promise<string | null> {
+    const pollKey = `poll:${postId}`;
+    const postType = await context.redis.hGet(pollKey, 'postType');
+    return postType || null; // Return null if "postType" does not exist (meaning it's not pinned)
+  }
+  

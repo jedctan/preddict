@@ -2,6 +2,7 @@
 import { Devvit, useState, useAsync , Context} from '@devvit/public-api';
 import DropDownMenu from './dropDownMenu.js';
 import { Router } from './Router.js';
+import { newPinnedPost } from './newPinnedPost.js';
 
 Devvit.addMenuItem({
   label: 'Add my post',
@@ -26,11 +27,16 @@ Devvit.addMenuItem({
   },
 });
 
+// Add option to create new pinned post
+Devvit.addMenuItem(newPinnedPost);
+
 // Configure Devvit
 Devvit.configure({
   redditAPI: true,
   redis: true,
 });
+
+
 
 // Add your custom post type
 // Devvit.addCustomPostType({
@@ -46,8 +52,11 @@ Devvit.configure({
 
 Devvit.addCustomPostType({
   name: 'Combined Experience Post',
+  height: 'tall',
   render: Router,
 });
+
+
 
 
 export default Devvit;
